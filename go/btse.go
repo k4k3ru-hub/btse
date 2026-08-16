@@ -15,6 +15,8 @@ import (
 const (
 	DefaultFuturesWebSocketEndpointURL    = btseWebsocket.DefaultFuturesEndpointURL
 	DefaultFuturesOSSWebSocketEndpointURL = btseWebsocket.DefaultFuturesOSSEndpointURL
+	DefaultSpotWebSocketEndpointURL       = btseWebsocket.DefaultSpotEndpointURL
+	DefaultSpotOSSWebSocketEndpointURL    = btseWebsocket.DefaultSpotOSSEndpointURL
 )
 
 type RESTClient = rest.Client
@@ -57,11 +59,33 @@ type Trade = protocol.Trade
 //   - 2026-08-16: Added.
 func DefaultRESTClientOption() *RESTClientOption { return rest.DefaultClientOption() }
 
+// DefaultSpotRESTClientOption returns the default Spot REST options.
+//
+// Version:
+//   - 2026-08-16: Added.
+func DefaultSpotRESTClientOption() *RESTClientOption { return rest.DefaultSpotClientOption() }
+
 // NewRESTClient creates a Futures REST client.
 //
 // Version:
 //   - 2026-08-16: Added.
 func NewRESTClient(option *RESTClientOption) (*RESTClient, error) { return rest.NewClient(option) }
+
+// NewFuturesRESTClient creates a Futures REST client.
+//
+// Version:
+//   - 2026-08-16: Added.
+func NewFuturesRESTClient(option *RESTClientOption) (*RESTClient, error) {
+	return rest.NewFuturesClient(option)
+}
+
+// NewSpotRESTClient creates a Spot REST client.
+//
+// Version:
+//   - 2026-08-16: Added.
+func NewSpotRESTClient(option *RESTClientOption) (*RESTClient, error) {
+	return rest.NewSpotClient(option)
+}
 
 // DefaultWebSocketClientOption returns the WebSocket transport defaults.
 //

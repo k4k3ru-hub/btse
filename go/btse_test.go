@@ -24,12 +24,28 @@ func (h *testSessionHandler) HandleClose(WebSocketSessionContext) {}
 // Version:
 //   - 2026-08-16: Added.
 func TestNewRESTClientComposesMarketOperations(t *testing.T) {
-	client, err := NewRESTClient(nil)
-	if err != nil {
-		t.Fatalf("NewRESTClient() error = %v", err)
+	constructors := []func(*RESTClientOption) (*RESTClient, error){NewRESTClient, NewFuturesRESTClient, NewSpotRESTClient}
+	for _, constructor := range constructors {
+		client, err := constructor(nil)
+		if err != nil {
+			t.Fatalf("REST constructor error = %v", err)
+		}
+		if client.Market() == nil || client.Market().Candles() == nil || client.Market().MarketSummary() == nil {
+			t.Fatal("REST constructor did not compose market clients")
+		}
 	}
-	if client.Market() == nil || client.Market().Candles() == nil || client.Market().MarketSummary() == nil {
-		t.Fatal("NewRESTClient() did not compose market clients")
+}
+
+// TestProductEndpointConstants verifies the public Spot and Futures endpoints.
+//
+// Version:
+//   - 2026-08-16: Added.
+func TestProductEndpointConstants(t *testing.T) {
+	if DefaultSpotWebSocketEndpointURL != "wss://ws.btse.com/ws/spot" || DefaultSpotOSSWebSocketEndpointURL != "wss://ws.btse.com/ws/oss/spot" {
+		t.Fatal("Spot WebSocket endpoints are invalid")
+	}
+	if DefaultFuturesWebSocketEndpointURL != "wss://ws.btse.com/ws/futures" || DefaultFuturesOSSWebSocketEndpointURL != "wss://ws.btse.com/ws/oss/futures" {
+		t.Fatal("Futures WebSocket endpoints are invalid")
 	}
 }
 

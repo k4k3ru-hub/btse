@@ -60,23 +60,57 @@ func DefaultClientOption() *ClientOption {
 	return &ClientOption{BaseURL: endpoint.DefaultFuturesBaseURL, ConnectTimeout: 3 * time.Second}
 }
 
+// DefaultSpotClientOption returns the default Spot REST options.
+//
+// Version:
+//   - 2026-08-16: Added.
+func DefaultSpotClientOption() *ClientOption {
+	return &ClientOption{BaseURL: endpoint.DefaultSpotBaseURL, ConnectTimeout: 3 * time.Second}
+}
+
 // NewClient creates a REST client and composes its API clients.
 //
 // Version:
 //   - 2026-08-16: Added.
 func NewClient(option *ClientOption) (*Client, error) {
+	return newClient(option, DefaultClientOption(), market.Paths{
+		Candles:       endpoint.FuturesOHLCVPath,
+		MarketSummary: endpoint.FuturesMarketSummaryPath,
+	})
+}
+
+// NewFuturesClient creates a Futures REST client.
+//
+// Version:
+//   - 2026-08-16: Added.
+func NewFuturesClient(option *ClientOption) (*Client, error) {
+	return NewClient(option)
+}
+
+// NewSpotClient creates a Spot REST client.
+//
+// Version:
+//   - 2026-08-16: Added.
+func NewSpotClient(option *ClientOption) (*Client, error) {
+	return newClient(option, DefaultSpotClientOption(), market.Paths{
+		Candles:       endpoint.SpotOHLCVPath,
+		MarketSummary: endpoint.SpotMarketSummaryPath,
+	})
+}
+
+func newClient(option *ClientOption, defaults *ClientOption, paths market.Paths) (*Client, error) {
 	if option == nil {
-		option = DefaultClientOption()
+		option = defaults
 	}
 	baseURL := strings.TrimRight(option.BaseURL, "/")
 	if baseURL == "" {
-		baseURL = endpoint.DefaultFuturesBaseURL
+		baseURL = defaults.BaseURL
 	}
 	httpClient := option.HTTPClient
 	if httpClient == nil {
 		timeout := option.ConnectTimeout
 		if timeout == 0 {
-			timeout = DefaultClientOption().ConnectTimeout
+			timeout = defaults.ConnectTimeout
 		}
 		if timeout < 0 {
 			return nil, fmt.Errorf("failed to create rest client: connect_timeout=out_of_range")
@@ -84,7 +118,7 @@ func NewClient(option *ClientOption) (*Client, error) {
 		httpClient = &http.Client{Transport: &http.Transport{DialContext: (&net.Dialer{Timeout: timeout}).DialContext}}
 	}
 	client := &Client{baseURL: baseURL, httpClient: httpClient}
-	marketClient, err := market.NewClient(client)
+	marketClient, err := market.NewClientWithPaths(client, paths)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rest client: %w", err)
 	}
@@ -103,7 +137,7 @@ func (c *Client) Market() *market.Client {
 	return c.market
 }
 
-// Candles requests Futures candle data.
+// Candles requests candle data.
 //
 // Version:
 //   - 2026-08-16: Added.
@@ -114,7 +148,7 @@ func (c *Client) Candles(ctx context.Context, params candles.Params) ([]candles.
 	return c.market.Candles().Send(ctx, params)
 }
 
-// MarketSummary requests Futures market metadata and current summary values.
+// MarketSummary requests market metadata and current summary values.
 //
 // Version:
 //   - 2026-08-16: Added.

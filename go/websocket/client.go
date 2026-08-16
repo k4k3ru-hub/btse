@@ -11,6 +11,8 @@ import (
 const (
 	DefaultFuturesEndpointURL    = "wss://ws.btse.com/ws/futures"
 	DefaultFuturesOSSEndpointURL = "wss://ws.btse.com/ws/oss/futures"
+	DefaultSpotEndpointURL       = "wss://ws.btse.com/ws/spot"
+	DefaultSpotOSSEndpointURL    = "wss://ws.btse.com/ws/oss/spot"
 )
 
 // ClientOption configures the shared WebSocket transport.

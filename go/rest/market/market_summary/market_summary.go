@@ -18,7 +18,7 @@ type Params struct {
 	ListFullAttributes bool
 }
 
-// MarketSummary contains BTSE Futures market metadata and current summary values.
+// MarketSummary contains BTSE market metadata and current summary values.
 type MarketSummary struct {
 	Symbol                 string   `json:"symbol"`
 	Last                   float64  `json:"last"`
@@ -60,6 +60,7 @@ type MarketSummary struct {
 // Client requests BTSE market summaries.
 type Client struct {
 	executor transport.Executor
+	path     string
 }
 
 // NewClient creates a market-summary client.
@@ -67,10 +68,21 @@ type Client struct {
 // Version:
 //   - 2026-08-16: Added.
 func NewClient(executor transport.Executor) (*Client, error) {
+	return NewClientWithPath(executor, endpoint.FuturesMarketSummaryPath)
+}
+
+// NewClientWithPath creates a market-summary client for a product-specific API path.
+//
+// Version:
+//   - 2026-08-16: Added.
+func NewClientWithPath(executor transport.Executor, path string) (*Client, error) {
 	if executor == nil {
 		return nil, fmt.Errorf("failed to create market summary client: executor=null")
 	}
-	return &Client{executor: executor}, nil
+	if path == "" {
+		return nil, fmt.Errorf("failed to create market summary client: path=empty")
+	}
+	return &Client{executor: executor, path: path}, nil
 }
 
 // Send requests market summaries.
@@ -90,7 +102,7 @@ func (c *Client) Send(ctx context.Context, params Params) ([]MarketSummary, erro
 
 	body, err := c.executor.Do(ctx, transport.Request{
 		Method: http.MethodGet,
-		Path:   endpoint.FuturesMarketSummaryPath,
+		Path:   c.path,
 		Query:  query,
 	})
 	if err != nil {

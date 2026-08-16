@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/k4k3ru-hub/btse/go/rest/endpoint"
 	"github.com/k4k3ru-hub/btse/go/rest/transport"
 )
 
@@ -37,6 +38,24 @@ func TestClientSendBuildsQueryAndDecodesCandles(t *testing.T) {
 	}
 	if len(result) != 1 || result[0].Timestamp != 1624987380 || result[0].Close != 36473.5 || result[0].Volume != 693.049 {
 		t.Errorf("result = %+v", result)
+	}
+}
+
+// TestClientSendUsesSpotPath verifies Spot candle path selection.
+//
+// Version:
+//   - 2026-08-16: Added.
+func TestClientSendUsesSpotPath(t *testing.T) {
+	executor := &recordingExecutor{}
+	client, err := NewClientWithPath(executor, endpoint.SpotOHLCVPath)
+	if err != nil {
+		t.Fatalf("NewClientWithPath() error = %v", err)
+	}
+	if _, err := client.Send(context.Background(), Params{Symbol: "BTC-USDT", Resolution: Resolution1Minute}); err != nil {
+		t.Fatalf("Send() error = %v", err)
+	}
+	if executor.request.Path != endpoint.SpotOHLCVPath {
+		t.Errorf("request path = %q", executor.request.Path)
 	}
 }
 

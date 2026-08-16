@@ -3,6 +3,7 @@ package market
 import (
 	"fmt"
 
+	"github.com/k4k3ru-hub/btse/go/rest/endpoint"
 	"github.com/k4k3ru-hub/btse/go/rest/market/candles"
 	"github.com/k4k3ru-hub/btse/go/rest/market/market_summary"
 	"github.com/k4k3ru-hub/btse/go/rest/transport"
@@ -14,19 +15,36 @@ type Client struct {
 	marketSummary *market_summary.Client
 }
 
+// Paths configures product-specific public market API paths.
+type Paths struct {
+	Candles       string
+	MarketSummary string
+}
+
 // NewClient creates a public market API client.
 //
 // Version:
 //   - 2026-08-16: Added.
 func NewClient(executor transport.Executor) (*Client, error) {
+	return NewClientWithPaths(executor, Paths{
+		Candles:       endpoint.FuturesOHLCVPath,
+		MarketSummary: endpoint.FuturesMarketSummaryPath,
+	})
+}
+
+// NewClientWithPaths creates a public market API client for product-specific paths.
+//
+// Version:
+//   - 2026-08-16: Added.
+func NewClientWithPaths(executor transport.Executor, paths Paths) (*Client, error) {
 	if executor == nil {
 		return nil, fmt.Errorf("failed to create market API client: executor=null")
 	}
-	candlesClient, err := candles.NewClient(executor)
+	candlesClient, err := candles.NewClientWithPath(executor, paths.Candles)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create market API client: %w", err)
 	}
-	marketSummaryClient, err := market_summary.NewClient(executor)
+	marketSummaryClient, err := market_summary.NewClientWithPath(executor, paths.MarketSummary)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create market API client: %w", err)
 	}

@@ -87,6 +87,7 @@ func (c *Candle) UnmarshalJSON(data []byte) error {
 // Client requests BTSE candle data.
 type Client struct {
 	executor transport.Executor
+	path     string
 }
 
 // NewClient creates a candle client.
@@ -94,10 +95,21 @@ type Client struct {
 // Version:
 //   - 2026-08-16: Added.
 func NewClient(executor transport.Executor) (*Client, error) {
+	return NewClientWithPath(executor, endpoint.FuturesOHLCVPath)
+}
+
+// NewClientWithPath creates a candle client for a product-specific API path.
+//
+// Version:
+//   - 2026-08-16: Added.
+func NewClientWithPath(executor transport.Executor, path string) (*Client, error) {
 	if executor == nil {
 		return nil, fmt.Errorf("failed to create candles client: executor=null")
 	}
-	return &Client{executor: executor}, nil
+	if path == "" {
+		return nil, fmt.Errorf("failed to create candles client: path=empty")
+	}
+	return &Client{executor: executor, path: path}, nil
 }
 
 // Send requests candle data.
@@ -135,7 +147,7 @@ func (c *Client) Send(ctx context.Context, params Params) ([]Candle, error) {
 		query.Set("end", strconv.FormatInt(params.End, 10))
 	}
 
-	body, err := c.executor.Do(ctx, transport.Request{Method: http.MethodGet, Path: endpoint.FuturesOHLCVPath, Query: query})
+	body, err := c.executor.Do(ctx, transport.Request{Method: http.MethodGet, Path: c.path, Query: query})
 	if err != nil {
 		return nil, fmt.Errorf("failed to request candles: %w", err)
 	}

@@ -12,6 +12,24 @@ type recordingExecutor struct {
 	request transport.Request
 }
 
+// TestClientSendUsesSpotPath verifies Spot market-summary path selection.
+//
+// Version:
+//   - 2026-08-16: Added.
+func TestClientSendUsesSpotPath(t *testing.T) {
+	executor := &recordingExecutor{}
+	client, err := NewClientWithPath(executor, endpoint.SpotMarketSummaryPath)
+	if err != nil {
+		t.Fatalf("NewClientWithPath() error = %v", err)
+	}
+	if _, err := client.Send(context.Background(), Params{Symbol: "BTC-USDT"}); err != nil {
+		t.Fatalf("Send() error = %v", err)
+	}
+	if executor.request.Path != endpoint.SpotMarketSummaryPath {
+		t.Errorf("request path = %q", executor.request.Path)
+	}
+}
+
 // Do records a market-summary request.
 //
 // Version:
