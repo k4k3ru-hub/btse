@@ -7,7 +7,7 @@ Go SDK for BTSE public Spot and Futures market data.
 - BBO: `snapshotL1:<symbol>` on the Spot or Futures OSS WebSocket endpoint
 - Trades: `tradeHistoryApiV3:<symbol>` on the Spot or Futures WebSocket endpoint
 - Candles: Spot `GET /api/v3.2/ohlcv`; Futures `GET /api/v2.3/ohlcv`
-- Market summary: Spot `GET /api/v3.2/market_summary`; Futures `GET /api/v2.3/market_summary`
+- Market metadata: unified Markets v1 `GET /public-api/market/v1/markets`
 
 The WebSocket feeds use separate BTSE endpoints, so create one client for BBO
 and another for trades.
@@ -37,8 +37,7 @@ if err != nil {
 	return err
 }
 summaries, err := restClient.MarketSummary(ctx, btse.MarketSummaryParams{
-	Symbol:             "BTC-PERP",
-	ListFullAttributes: true,
+	Symbol: "BTC-PERP-USDT",
 })
 
 bboClient, err := btse.NewWebSocketClient(

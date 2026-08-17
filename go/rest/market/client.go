@@ -28,13 +28,14 @@ type Paths struct {
 func NewClient(executor transport.Executor) (*Client, error) {
 	return NewClientWithPaths(executor, Paths{
 		Candles:       endpoint.FuturesOHLCVPath,
-		MarketSummary: endpoint.FuturesMarketSummaryPath,
+		MarketSummary: endpoint.MarketsPath,
 	})
 }
 
 // NewClientWithPaths creates a public market API client for product-specific paths.
 //
 // Version:
+//   - 2026-08-18: Composed market metadata with the unified Markets v1 API.
 //   - 2026-08-16: Added.
 func NewClientWithPaths(executor transport.Executor, paths Paths) (*Client, error) {
 	if executor == nil {
@@ -44,7 +45,7 @@ func NewClientWithPaths(executor transport.Executor, paths Paths) (*Client, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to create market API client: %w", err)
 	}
-	marketSummaryClient, err := market_summary.NewClientWithPath(executor, paths.MarketSummary)
+	marketSummaryClient, err := market_summary.NewClientWithEndpoint(executor, endpoint.DefaultMarketsBaseURL, paths.MarketSummary)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create market API client: %w", err)
 	}

@@ -36,15 +36,22 @@ func TestClientSendUsesSpotPath(t *testing.T) {
 //   - 2026-08-16: Added.
 func (e *recordingExecutor) Do(_ context.Context, request transport.Request) ([]byte, error) {
 	e.request = request
-	return []byte(`[{
+	return []byte(`{
+		"success":true,
+		"code":1,
+		"msg":"Success",
+		"data":{"symbols":[{
 		"symbol":"BTC-PERP",
-		"base":"BTC",
-		"quote":"USDT",
+		"type":"FuturesPerpetual",
+		"baseCurrency":"BTC",
+		"quoteCurrency":"USDT",
 		"active":true,
-		"minPriceIncrement":0.1,
-		"minSizeIncrement":0.001,
-		"fundingIntervalMinutes":480
-	}]`), nil
+		"minPriceIncrement":"0.1",
+		"minOrderSize":"1",
+		"maxOrderSize":"500000",
+		"minSizeIncrement":"1",
+		"contractSize":"0.001"
+	}]}}`), nil
 }
 
 // TestClientSendBuildsQueryAndDecodesSummary verifies market-summary requests.
@@ -59,19 +66,18 @@ func TestClientSendBuildsQueryAndDecodesSummary(t *testing.T) {
 	}
 
 	result, err := client.Send(context.Background(), Params{
-		Symbol:             "BTC-PERP",
-		ListFullAttributes: true,
+		Symbol: "BTC-PERP",
 	})
 	if err != nil {
 		t.Fatalf("Send() error = %v", err)
 	}
-	if executor.request.Path != endpoint.FuturesMarketSummaryPath {
+	if executor.request.BaseURL != endpoint.DefaultMarketsBaseURL || executor.request.Path != endpoint.MarketsPath {
 		t.Errorf("request path = %q", executor.request.Path)
 	}
-	if executor.request.Query.Get("symbol") != "BTC-PERP" || executor.request.Query.Get("listFullAttributes") != "true" {
+	if executor.request.Query.Get("symbol") != "BTC-PERP" {
 		t.Errorf("request query = %v", executor.request.Query)
 	}
-	if len(result) != 1 || result[0].Symbol != "BTC-PERP" || result[0].MinPriceIncrement != 0.1 || result[0].FundingIntervalMinutes != 480 {
+	if len(result) != 1 || result[0].Symbol != "BTC-PERP" || result[0].Type != "FuturesPerpetual" || result[0].MinPriceIncrement != 0.1 || result[0].ContractSize != 0.001 {
 		t.Errorf("result = %+v", result)
 	}
 }
@@ -91,5 +97,16 @@ func TestClientSendOmitsEmptySymbol(t *testing.T) {
 	}
 	if executor.request.Query.Has("symbol") {
 		t.Errorf("request query = %v", executor.request.Query)
+	}
+}
+
+// TestClientSendRejectsCombinedFilters verifies Markets v1 filter exclusivity.
+//
+// Version:
+//   - 2026-08-18: Added.
+func TestClientSendRejectsCombinedFilters(t *testing.T) {
+	client, _ := NewClient(&recordingExecutor{})
+	if _, err := client.Send(context.Background(), Params{Symbol: "BTC-USDT", Types: []string{"Spot"}}); err == nil {
+		t.Fatal("Send() error = nil")
 	}
 }

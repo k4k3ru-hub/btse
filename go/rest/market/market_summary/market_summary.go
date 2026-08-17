@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 
 	"github.com/k4k3ru-hub/btse/go/rest/endpoint"
 	"github.com/k4k3ru-hub/btse/go/rest/transport"
@@ -14,13 +13,19 @@ import (
 
 // Params configures a market-summary request.
 type Params struct {
-	Symbol             string
+	Symbol  string
+	Symbols []string
+	Types   []string
+	// ListFullAttributes is retained for source compatibility and is ignored by Markets v1.
 	ListFullAttributes bool
 }
 
-// MarketSummary contains BTSE market metadata and current summary values.
+// MarketSummary contains BTSE market metadata.
 type MarketSummary struct {
 	Symbol                 string   `json:"symbol"`
+	Type                   string   `json:"type"`
+	Category               string   `json:"category"`
+	TradeCurrency          string   `json:"tradeCurrency"`
 	Last                   float64  `json:"last"`
 	LowestAsk              float64  `json:"lowestAsk"`
 	HighestBid             float64  `json:"highestBid"`
@@ -28,26 +33,29 @@ type MarketSummary struct {
 	Volume                 float64  `json:"volume"`
 	High24Hr               float64  `json:"high24Hr"`
 	Low24Hr                float64  `json:"low24Hr"`
-	Base                   string   `json:"base"`
-	Quote                  string   `json:"quote"`
+	Base                   string   `json:"baseCurrency"`
+	Quote                  string   `json:"quoteCurrency"`
 	Active                 bool     `json:"active"`
 	Size                   float64  `json:"size"`
-	MinValidPrice          float64  `json:"minValidPrice"`
-	MinPriceIncrement      float64  `json:"minPriceIncrement"`
-	MinOrderSize           float64  `json:"minOrderSize"`
-	MaxOrderSize           float64  `json:"maxOrderSize"`
-	MinSizeIncrement       float64  `json:"minSizeIncrement"`
+	MinValidPrice          float64  `json:"-"`
+	MinOrderPrice          float64  `json:"minOrderPrice,string"`
+	MinPriceIncrement      float64  `json:"minPriceIncrement,string"`
+	PricePrecision         int      `json:"pricePrecision"`
+	MinOrderSize           float64  `json:"minOrderSize,string"`
+	MaxOrderSize           float64  `json:"maxOrderSize,string"`
+	MinSizeIncrement       float64  `json:"minSizeIncrement,string"`
+	SizePrecision          int      `json:"sizePrecision"`
 	OpenInterest           float64  `json:"openInterest"`
 	OpenInterestUSD        float64  `json:"openInterestUSD"`
-	ContractStart          int64    `json:"contractStart"`
-	ContractEnd            int64    `json:"contractEnd"`
+	ContractStart          int64    `json:"contractStartTime"`
+	ContractEnd            int64    `json:"contractEndTime"`
 	TimeBasedContract      bool     `json:"timeBasedContract"`
 	OpenTime               int64    `json:"openTime"`
 	CloseTime              int64    `json:"closeTime"`
-	StartMatching          int64    `json:"startMatching"`
-	InactiveTime           int64    `json:"inactiveTime"`
+	StartMatching          int64    `json:"matchingStartTime"`
+	InactiveTime           int64    `json:"becomeInactiveTime"`
 	FundingRate            float64  `json:"fundingRate"`
-	ContractSize           float64  `json:"contractSize"`
+	ContractSize           float64  `json:"contractSize,string"`
 	MaxPosition            float64  `json:"maxPosition"`
 	MinRiskLimit           float64  `json:"minRiskLimit"`
 	MaxRiskLimit           float64  `json:"maxRiskLimit"`
@@ -60,29 +68,40 @@ type MarketSummary struct {
 // Client requests BTSE market summaries.
 type Client struct {
 	executor transport.Executor
+	baseURL  string
 	path     string
 }
 
 // NewClient creates a market-summary client.
 //
 // Version:
+//   - 2026-08-18: Changed the default endpoint to the unified Markets v1 API.
 //   - 2026-08-16: Added.
 func NewClient(executor transport.Executor) (*Client, error) {
-	return NewClientWithPath(executor, endpoint.FuturesMarketSummaryPath)
+	return NewClientWithEndpoint(executor, endpoint.DefaultMarketsBaseURL, endpoint.MarketsPath)
 }
 
 // NewClientWithPath creates a market-summary client for a product-specific API path.
 //
 // Version:
+//   - 2026-08-18: Added Markets v1 filters and response decoding.
 //   - 2026-08-16: Added.
 func NewClientWithPath(executor transport.Executor, path string) (*Client, error) {
+	return NewClientWithEndpoint(executor, "", path)
+}
+
+// NewClientWithEndpoint creates a market-information client for an API endpoint.
+//
+// Version:
+//   - 2026-08-18: Added.
+func NewClientWithEndpoint(executor transport.Executor, baseURL, path string) (*Client, error) {
 	if executor == nil {
 		return nil, fmt.Errorf("failed to create market summary client: executor=null")
 	}
 	if path == "" {
 		return nil, fmt.Errorf("failed to create market summary client: path=empty")
 	}
-	return &Client{executor: executor, path: path}, nil
+	return &Client{executor: executor, baseURL: baseURL, path: path}, nil
 }
 
 // Send requests market summaries.
@@ -94,24 +113,62 @@ func (c *Client) Send(ctx context.Context, params Params) ([]MarketSummary, erro
 		return nil, fmt.Errorf("failed to request market summary: client=null")
 	}
 
+	parameterCount := 0
+	if params.Symbol != "" {
+		parameterCount++
+	}
+	if len(params.Symbols) > 0 {
+		parameterCount++
+	}
+	if len(params.Types) > 0 {
+		parameterCount++
+	}
+	if parameterCount > 1 {
+		return nil, fmt.Errorf("failed to request market summary: filters=invalid")
+	}
+
 	query := make(url.Values)
 	if params.Symbol != "" {
 		query.Set("symbol", params.Symbol)
 	}
-	query.Set("listFullAttributes", strconv.FormatBool(params.ListFullAttributes))
+	if len(params.Symbols) > 0 {
+		value, err := json.Marshal(params.Symbols)
+		if err != nil {
+			return nil, fmt.Errorf("failed to request market summary: failed to encode symbols: %w", err)
+		}
+		query.Set("symbols", string(value))
+	}
+	if len(params.Types) > 0 {
+		value, err := json.Marshal(params.Types)
+		if err != nil {
+			return nil, fmt.Errorf("failed to request market summary: failed to encode types: %w", err)
+		}
+		query.Set("types", string(value))
+	}
 
 	body, err := c.executor.Do(ctx, transport.Request{
-		Method: http.MethodGet,
-		Path:   c.path,
-		Query:  query,
+		BaseURL: c.baseURL,
+		Method:  http.MethodGet,
+		Path:    c.path,
+		Query:   query,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to request market summary: %w", err)
 	}
 
-	var result []MarketSummary
-	if err := json.Unmarshal(body, &result); err != nil {
+	var response struct {
+		Success bool   `json:"success"`
+		Code    int    `json:"code"`
+		Message string `json:"msg"`
+		Data    struct {
+			Symbols []MarketSummary `json:"symbols"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &response); err != nil {
 		return nil, fmt.Errorf("failed to request market summary: failed to decode response body: %w", err)
 	}
-	return result, nil
+	if !response.Success {
+		return nil, fmt.Errorf("failed to request market summary: api request unsuccessful: code=%d message=%q", response.Code, response.Message)
+	}
+	return response.Data.Symbols, nil
 }

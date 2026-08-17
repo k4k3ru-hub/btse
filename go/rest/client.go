@@ -71,17 +71,19 @@ func DefaultSpotClientOption() *ClientOption {
 // NewClient creates a REST client and composes its API clients.
 //
 // Version:
+//   - 2026-08-18: Composed market metadata with the unified Markets v1 API.
 //   - 2026-08-16: Added.
 func NewClient(option *ClientOption) (*Client, error) {
 	return newClient(option, DefaultClientOption(), market.Paths{
 		Candles:       endpoint.FuturesOHLCVPath,
-		MarketSummary: endpoint.FuturesMarketSummaryPath,
+		MarketSummary: endpoint.MarketsPath,
 	})
 }
 
 // NewFuturesClient creates a Futures REST client.
 //
 // Version:
+//   - 2026-08-18: Composed market metadata with the unified Markets v1 API.
 //   - 2026-08-16: Added.
 func NewFuturesClient(option *ClientOption) (*Client, error) {
 	return NewClient(option)
@@ -90,11 +92,12 @@ func NewFuturesClient(option *ClientOption) (*Client, error) {
 // NewSpotClient creates a Spot REST client.
 //
 // Version:
+//   - 2026-08-18: Composed market metadata with the unified Markets v1 API.
 //   - 2026-08-16: Added.
 func NewSpotClient(option *ClientOption) (*Client, error) {
 	return newClient(option, DefaultSpotClientOption(), market.Paths{
 		Candles:       endpoint.SpotOHLCVPath,
-		MarketSummary: endpoint.SpotMarketSummaryPath,
+		MarketSummary: endpoint.MarketsPath,
 	})
 }
 
@@ -151,6 +154,7 @@ func (c *Client) Candles(ctx context.Context, params candles.Params) ([]candles.
 // MarketSummary requests market metadata and current summary values.
 //
 // Version:
+//   - 2026-08-18: Changed the operation to return Markets v1 metadata.
 //   - 2026-08-16: Added.
 func (c *Client) MarketSummary(ctx context.Context, params market_summary.Params) ([]market_summary.MarketSummary, error) {
 	if c == nil || c.market == nil || c.market.MarketSummary() == nil {
@@ -162,6 +166,7 @@ func (c *Client) MarketSummary(ctx context.Context, params market_summary.Params
 // Do executes a REST request.
 //
 // Version:
+//   - 2026-08-18: Added support for request-specific base URLs.
 //   - 2026-08-16: Added.
 func (c *Client) Do(ctx context.Context, request transport.Request) ([]byte, error) {
 	if c == nil {
@@ -176,7 +181,11 @@ func (c *Client) Do(ctx context.Context, request transport.Request) ([]byte, err
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	httpRequest, err := http.NewRequestWithContext(ctx, request.Method, c.baseURL+"/"+strings.TrimLeft(request.Path, "/"), nil)
+	baseURL := c.baseURL
+	if request.BaseURL != "" {
+		baseURL = strings.TrimRight(request.BaseURL, "/")
+	}
+	httpRequest, err := http.NewRequestWithContext(ctx, request.Method, baseURL+"/"+strings.TrimLeft(request.Path, "/"), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute rest request: failed to create HTTP request: %w", err)
 	}

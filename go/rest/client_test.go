@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/k4k3ru-hub/btse/go/rest/market/candles"
+	"github.com/k4k3ru-hub/btse/go/rest/market/market_summary"
 )
 
 type recordingHTTPClient struct {
@@ -20,10 +21,34 @@ type recordingHTTPClient struct {
 //   - 2026-08-16: Added.
 func (c *recordingHTTPClient) Do(request *http.Request) (*http.Response, error) {
 	c.request = request
+	body := `[[1624987380,1,2,0.5,1.5,10]]`
+	if request.URL.Path == "/public-api/market/v1/markets" {
+		body = `{"success":true,"code":1,"msg":"Success","data":{"symbols":[]}}`
+	}
 	return &http.Response{
 		StatusCode: http.StatusOK,
-		Body:       io.NopCloser(strings.NewReader(`[[1624987380,1,2,0.5,1.5,10]]`)),
+		Body:       io.NopCloser(strings.NewReader(body)),
 	}, nil
+}
+
+// TestProductClientsUseMarketsV1 verifies that both product clients use the unified Markets API.
+//
+// Version:
+//   - 2026-08-18: Added.
+func TestProductClientsUseMarketsV1(t *testing.T) {
+	for _, constructor := range []func(*ClientOption) (*Client, error){NewFuturesClient, NewSpotClient} {
+		httpClient := &recordingHTTPClient{}
+		client, err := constructor(&ClientOption{HTTPClient: httpClient})
+		if err != nil {
+			t.Fatalf("constructor error = %v", err)
+		}
+		if _, err := client.MarketSummary(context.Background(), market_summary.Params{Symbol: "BTC-USDT"}); err != nil {
+			t.Fatalf("MarketSummary() error = %v", err)
+		}
+		if got := httpClient.request.URL.String(); got != "https://api.btse.com/public-api/market/v1/markets?symbol=BTC-USDT" {
+			t.Errorf("request URL = %q", got)
+		}
+	}
 }
 
 // TestProductClientsUseExpectedCandleURLs verifies product-specific REST composition.

@@ -8,10 +8,11 @@ import (
 
 // Request contains the immutable values for one REST request.
 type Request struct {
-	Method string
-	Path   string
-	Query  url.Values
-	Header http.Header
+	BaseURL string
+	Method  string
+	Path    string
+	Query   url.Values
+	Header  http.Header
 }
 
 // Executor executes REST requests.
