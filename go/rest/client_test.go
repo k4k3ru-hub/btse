@@ -7,7 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/k4k3ru-hub/btse/go/rest/endpoint"
 	"github.com/k4k3ru-hub/btse/go/rest/market/candles"
+	"github.com/k4k3ru-hub/btse/go/rest/market/funding_history"
 	"github.com/k4k3ru-hub/btse/go/rest/market/market_summary"
 )
 
@@ -24,11 +26,31 @@ func (c *recordingHTTPClient) Do(request *http.Request) (*http.Response, error) 
 	body := `[[1624987380,1,2,0.5,1.5,10]]`
 	if request.URL.Path == "/public-api/market/v1/markets" {
 		body = `{"success":true,"code":1,"msg":"Success","data":{"symbols":[]}}`
+	} else if strings.HasSuffix(request.URL.Path, endpoint.FuturesFundingHistoryPath) {
+		body = `{"BTC-PERP":[]}`
 	}
 	return &http.Response{
 		StatusCode: http.StatusOK,
 		Body:       io.NopCloser(strings.NewReader(body)),
 	}, nil
+}
+
+// TestFuturesClientUsesFundingHistoryEndpoint verifies Futures funding-history composition.
+//
+// Version:
+//   - 2026-08-19: Added.
+func TestFuturesClientUsesFundingHistoryEndpoint(t *testing.T) {
+	httpClient := &recordingHTTPClient{}
+	client, err := NewFuturesClient(&ClientOption{HTTPClient: httpClient})
+	if err != nil {
+		t.Fatalf("NewFuturesClient() error = %v", err)
+	}
+	if _, err := client.FundingHistory(context.Background(), funding_history.Params{Symbol: "BTC-PERP", Count: 10}); err != nil {
+		t.Fatalf("FundingHistory() error = %v", err)
+	}
+	if got := httpClient.request.URL.String(); got != "https://api.btse.com/futures/api/v2.1/funding_history?count=10&symbol=BTC-PERP" {
+		t.Errorf("request URL = %q", got)
+	}
 }
 
 // TestProductClientsUseMarketsV1 verifies that both product clients use the unified Markets API.

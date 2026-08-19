@@ -24,14 +24,24 @@ func (h *testSessionHandler) HandleClose(WebSocketSessionContext) {}
 // Version:
 //   - 2026-08-16: Added.
 func TestNewRESTClientComposesMarketOperations(t *testing.T) {
-	constructors := []func(*RESTClientOption) (*RESTClient, error){NewRESTClient, NewFuturesRESTClient, NewSpotRESTClient}
-	for _, constructor := range constructors {
-		client, err := constructor(nil)
+	constructors := []struct {
+		constructor       func(*RESTClientOption) (*RESTClient, error)
+		hasFundingHistory bool
+	}{
+		{constructor: NewRESTClient, hasFundingHistory: true},
+		{constructor: NewFuturesRESTClient, hasFundingHistory: true},
+		{constructor: NewSpotRESTClient},
+	}
+	for _, test := range constructors {
+		client, err := test.constructor(nil)
 		if err != nil {
 			t.Fatalf("REST constructor error = %v", err)
 		}
 		if client.Market() == nil || client.Market().Candles() == nil || client.Market().MarketSummary() == nil {
 			t.Fatal("REST constructor did not compose market clients")
+		}
+		if test.hasFundingHistory && client.Market().FundingHistory() == nil {
+			t.Fatal("Futures REST constructor did not compose funding history")
 		}
 	}
 }

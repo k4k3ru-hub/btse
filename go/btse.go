@@ -68,6 +68,7 @@ func DefaultSpotRESTClientOption() *RESTClientOption { return rest.DefaultSpotCl
 // NewRESTClient creates a Futures REST client.
 //
 // Version:
+//   - 2026-08-19: Composed settled Futures funding history.
 //   - 2026-08-18: Composed market metadata with the unified Markets v1 API.
 //   - 2026-08-16: Added.
 func NewRESTClient(option *RESTClientOption) (*RESTClient, error) { return rest.NewClient(option) }
@@ -75,6 +76,7 @@ func NewRESTClient(option *RESTClientOption) (*RESTClient, error) { return rest.
 // NewFuturesRESTClient creates a Futures REST client.
 //
 // Version:
+//   - 2026-08-19: Composed settled Futures funding history.
 //   - 2026-08-18: Composed market metadata with the unified Markets v1 API.
 //   - 2026-08-16: Added.
 func NewFuturesRESTClient(option *RESTClientOption) (*RESTClient, error) {

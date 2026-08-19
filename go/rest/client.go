@@ -12,6 +12,7 @@ import (
 	"github.com/k4k3ru-hub/btse/go/rest/endpoint"
 	"github.com/k4k3ru-hub/btse/go/rest/market"
 	"github.com/k4k3ru-hub/btse/go/rest/market/candles"
+	"github.com/k4k3ru-hub/btse/go/rest/market/funding_history"
 	"github.com/k4k3ru-hub/btse/go/rest/market/market_summary"
 	"github.com/k4k3ru-hub/btse/go/rest/transport"
 )
@@ -71,18 +72,21 @@ func DefaultSpotClientOption() *ClientOption {
 // NewClient creates a REST client and composes its API clients.
 //
 // Version:
+//   - 2026-08-19: Composed settled Futures funding history.
 //   - 2026-08-18: Composed market metadata with the unified Markets v1 API.
 //   - 2026-08-16: Added.
 func NewClient(option *ClientOption) (*Client, error) {
 	return newClient(option, DefaultClientOption(), market.Paths{
-		Candles:       endpoint.FuturesOHLCVPath,
-		MarketSummary: endpoint.MarketsPath,
+		Candles:        endpoint.FuturesOHLCVPath,
+		MarketSummary:  endpoint.MarketsPath,
+		FundingHistory: endpoint.FuturesFundingHistoryPath,
 	})
 }
 
 // NewFuturesClient creates a Futures REST client.
 //
 // Version:
+//   - 2026-08-19: Composed settled Futures funding history.
 //   - 2026-08-18: Composed market metadata with the unified Markets v1 API.
 //   - 2026-08-16: Added.
 func NewFuturesClient(option *ClientOption) (*Client, error) {
@@ -161,6 +165,17 @@ func (c *Client) MarketSummary(ctx context.Context, params market_summary.Params
 		return nil, fmt.Errorf("failed to request market summary: client=null")
 	}
 	return c.market.MarketSummary().Send(ctx, params)
+}
+
+// FundingHistory requests settled funding rates.
+//
+// Version:
+//   - 2026-08-19: Added.
+func (c *Client) FundingHistory(ctx context.Context, params funding_history.Params) ([]funding_history.FundingRate, error) {
+	if c == nil || c.market == nil || c.market.FundingHistory() == nil {
+		return nil, fmt.Errorf("failed to request funding history: funding_history_client=null")
+	}
+	return c.market.FundingHistory().Send(ctx, params)
 }
 
 // Do executes a REST request.

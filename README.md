@@ -8,9 +8,12 @@ Go SDK for BTSE public Spot and Futures market data.
 - Trades: `tradeHistoryApiV3:<symbol>` on the Spot or Futures WebSocket endpoint
 - Candles: Spot `GET /api/v3.2/ohlcv`; Futures `GET /api/v2.3/ohlcv`
 - Market metadata: unified Markets v1 `GET /public-api/market/v1/markets`
+- Settled Futures funding rates: `GET /api/v2.1/funding_history`
 
 The WebSocket feeds use separate BTSE endpoints, so create one client for BBO
 and another for trades.
+Funding-history parameters are owned by
+`github.com/k4k3ru-hub/btse/go/rest/market/funding_history`.
 
 ```go
 restClient, err := btse.NewFuturesRESTClient(nil)
@@ -38,6 +41,12 @@ if err != nil {
 }
 summaries, err := restClient.MarketSummary(ctx, btse.MarketSummaryParams{
 	Symbol: "BTC-PERP-USDT",
+})
+
+fundingRates, err := restClient.FundingHistory(ctx, funding_history.Params{
+	Symbol: "BTC-PERP",
+	From:   startTime.UnixMilli(),
+	To:     endTime.UnixMilli(),
 })
 
 bboClient, err := btse.NewWebSocketClient(
