@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/k4k3ru-hub/btse/go/rest/endpoint"
 	"github.com/k4k3ru-hub/btse/go/rest/transport"
@@ -63,6 +64,30 @@ type MarketSummary struct {
 	Futures                bool     `json:"futures"`
 	FundingIntervalMinutes int      `json:"fundingIntervalMinutes"`
 	FundingTime            int64    `json:"fundingTime"`
+}
+
+// WebSocketSymbol resolves the venue symbol used by BTSE WebSocket feeds.
+//
+// Returns:
+//   - WebSocket venue symbol.
+//   - Resolution error.
+//
+// Version:
+//   - 2026-08-23: Added.
+func (m MarketSummary) WebSocketSymbol() (string, error) {
+	var symbol string
+	switch strings.TrimSpace(m.Type) {
+	case "Spot":
+		symbol = strings.TrimSpace(m.Symbol)
+	case "FuturesPerpetual", "FuturesTimeBased":
+		symbol = strings.TrimSpace(m.TradeCurrency)
+	default:
+		return "", fmt.Errorf("failed to resolve market summary websocket symbol: market_type=invalid")
+	}
+	if symbol == "" {
+		return "", fmt.Errorf("failed to resolve market summary websocket symbol: symbol=empty")
+	}
+	return symbol, nil
 }
 
 // Client requests BTSE market summaries.

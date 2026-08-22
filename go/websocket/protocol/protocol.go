@@ -9,7 +9,9 @@ const (
 	OperationSubscribe   = "subscribe"
 	OperationUnsubscribe = "unsubscribe"
 	TopicBBO             = "snapshotL1"
-	TopicTrades          = "tradeHistoryApiV3"
+	TopicSpotTrades      = "tradeHistoryApi"
+	TopicFuturesTrades   = "tradeHistoryApiV3"
+	TopicTrades          = TopicFuturesTrades
 )
 
 // SubscribeRequest is the common BTSE public subscription request.

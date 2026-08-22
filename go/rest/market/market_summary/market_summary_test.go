@@ -110,3 +110,33 @@ func TestClientSendRejectsCombinedFilters(t *testing.T) {
 		t.Fatal("Send() error = nil")
 	}
 }
+
+// TestMarketSummaryWebSocketSymbol resolves product-specific WebSocket symbols.
+//
+// Version:
+//   - 2026-08-23: Added.
+func TestMarketSummaryWebSocketSymbol(t *testing.T) {
+	tests := []struct {
+		name    string
+		summary MarketSummary
+		want    string
+		wantErr bool
+	}{
+		{name: "spot", summary: MarketSummary{Type: "Spot", Symbol: "BTC-USDT"}, want: "BTC-USDT"},
+		{name: "perpetual", summary: MarketSummary{Type: "FuturesPerpetual", Symbol: "BTC-PERP-USDT", TradeCurrency: "BTC-PERP"}, want: "BTC-PERP"},
+		{name: "time based", summary: MarketSummary{Type: "FuturesTimeBased", Symbol: "BTC-260925-USDT", TradeCurrency: "BTC-260925"}, want: "BTC-260925"},
+		{name: "missing trade currency", summary: MarketSummary{Type: "FuturesPerpetual", Symbol: "BTC-PERP-USDT"}, wantErr: true},
+		{name: "unknown type", summary: MarketSummary{Type: "unknown", Symbol: "BTC-USDT"}, wantErr: true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := test.summary.WebSocketSymbol()
+			if (err != nil) != test.wantErr {
+				t.Fatalf("WebSocketSymbol() error = %v, wantErr %t", err, test.wantErr)
+			}
+			if got != test.want {
+				t.Fatalf("WebSocketSymbol() = %q, want %q", got, test.want)
+			}
+		})
+	}
+}

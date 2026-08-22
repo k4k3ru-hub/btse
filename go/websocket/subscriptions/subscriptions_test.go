@@ -76,3 +76,33 @@ func TestTradesClientBuildsBTSEPayload(t *testing.T) {
 		t.Errorf("subscribe = %+v", r)
 	}
 }
+
+// TestTradesParamsSelectsMarketTopic verifies market-specific trade topics.
+//
+// Version:
+//   - 2026-08-23: Added.
+func TestTradesParamsSelectsMarketTopic(t *testing.T) {
+	tests := []struct {
+		name   string
+		params TradesParams
+		want   string
+	}{
+		{name: "spot", params: TradesParams{Symbol: "BTC-USDT", Market: TradeMarketSpot}, want: "tradeHistoryApi:BTC-USDT"},
+		{name: "futures", params: TradesParams{Symbol: "BTC-PERP", Market: TradeMarketFutures}, want: "tradeHistoryApiV3:BTC-PERP"},
+		{name: "compatibility default", params: TradesParams{Symbol: "BTC-PERP"}, want: "tradeHistoryApiV3:BTC-PERP"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := test.params.Key()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != test.want {
+				t.Fatalf("Key() = %q, want %q", got, test.want)
+			}
+		})
+	}
+	if _, err := (TradesParams{Symbol: "BTC-USDT", Market: "invalid"}).Key(); err == nil {
+		t.Fatal("Key() error = nil, want invalid market error")
+	}
+}

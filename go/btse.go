@@ -47,11 +47,17 @@ type WebSocketSessionHandler = btseWebsocket.SessionHandler
 type WebSocketSessionContext = btseWebsocket.SessionContext
 type BBOParams = subscriptions.BBOParams
 type TradesParams = subscriptions.TradesParams
+type TradeMarket = subscriptions.TradeMarket
 type WebSocketEnvelope = protocol.Envelope
 type BBO = protocol.BBO
 type BBOData = protocol.BBOData
 type Trades = protocol.Trades
 type Trade = protocol.Trade
+
+const (
+	TradeMarketSpot    = subscriptions.TradeMarketSpot
+	TradeMarketFutures = subscriptions.TradeMarketFutures
+)
 
 // DefaultRESTClientOption returns the default Futures REST options.
 //

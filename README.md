@@ -5,7 +5,8 @@ Go SDK for BTSE public Spot and Futures market data.
 ## Supported data
 
 - BBO: `snapshotL1:<symbol>` on the Spot or Futures OSS WebSocket endpoint
-- Trades: `tradeHistoryApiV3:<symbol>` on the Spot or Futures WebSocket endpoint
+- Spot Trades: `tradeHistoryApi:<symbol>` on the Spot WebSocket endpoint
+- Futures Trades: `tradeHistoryApiV3:<symbol>` on the Futures WebSocket endpoint
 - Candles: Spot `GET /api/v3.2/ohlcv`; Futures `GET /api/v2.3/ohlcv`
 - Market metadata: unified Markets v1 `GET /public-api/market/v1/markets`
 - Settled Futures funding rates: `GET /api/v2.1/funding_history`
@@ -65,6 +66,11 @@ if err := bboClient.BBO().Subscribe(ctx, btse.BBOParams{Symbol: "BTC-PERP"}); er
 	return err
 }
 ```
+
+Set `TradesParams.Market` so the SDK selects the protocol topic. The zero value
+retains the historical Futures `tradeHistoryApiV3` behavior for compatibility.
+Use `MarketSummary.WebSocketSymbol` to resolve unified Markets v1 symbols such
+as `BTC-PERP-USDT` to the Futures WebSocket symbol `BTC-PERP`.
 
 `NewRESTClient` remains an alias for the Futures client for compatibility. Use
 the Spot WebSocket constants with `NewWebSocketClient` for Spot subscriptions.

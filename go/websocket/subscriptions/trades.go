@@ -11,18 +11,38 @@ import (
 // TradesClient manages public trade subscriptions.
 type TradesClient struct{ executor Executor }
 
+// TradeMarket identifies the BTSE market protocol used for trade subscriptions.
+type TradeMarket string
+
+const (
+	TradeMarketSpot    TradeMarket = "spot"
+	TradeMarketFutures TradeMarket = "futures"
+)
+
 // TradesParams configures a public trade subscription.
-type TradesParams struct{ Symbol string }
+type TradesParams struct {
+	Symbol string
+	Market TradeMarket
+}
 
 // Key returns the BTSE trades topic.
 //
 // Version:
+//   - 2026-08-23: Selected the trade topic by Spot or Futures market.
 //   - 2026-08-16: Added.
 func (p TradesParams) Key() (string, error) {
 	if p.Symbol == "" {
 		return "", fmt.Errorf("failed to build trades subscription key: symbol=empty")
 	}
-	return protocol.TopicTrades + ":" + p.Symbol, nil
+	topic := protocol.TopicFuturesTrades
+	switch p.Market {
+	case "", TradeMarketFutures:
+	case TradeMarketSpot:
+		topic = protocol.TopicSpotTrades
+	default:
+		return "", fmt.Errorf("failed to build trades subscription key: market=invalid")
+	}
+	return topic + ":" + p.Symbol, nil
 }
 
 // NewTradesClient creates a public trade subscription client.
