@@ -14,6 +14,9 @@ import (
 	"github.com/k4k3ru-hub/btse/go/rest/market/candles"
 	"github.com/k4k3ru-hub/btse/go/rest/market/funding_history"
 	"github.com/k4k3ru-hub/btse/go/rest/market/market_summary"
+	"github.com/k4k3ru-hub/btse/go/rest/markets"
+	ticker24hr "github.com/k4k3ru-hub/btse/go/rest/markets/ticker_24hr"
+	tickerindices "github.com/k4k3ru-hub/btse/go/rest/markets/ticker_indices"
 	"github.com/k4k3ru-hub/btse/go/rest/transport"
 )
 
@@ -34,6 +37,7 @@ type Client struct {
 	baseURL    string
 	httpClient HTTPClient
 	market     *market.Client
+	markets    *markets.Client
 }
 
 // ResponseError represents a non-successful HTTP response.
@@ -130,6 +134,11 @@ func newClient(option *ClientOption, defaults *ClientOption, paths market.Paths)
 		return nil, fmt.Errorf("failed to create rest client: %w", err)
 	}
 	client.market = marketClient
+	marketsClient, err := markets.NewClient(client)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create rest client: %w", err)
+	}
+	client.markets = marketsClient
 	return client, nil
 }
 
@@ -142,6 +151,17 @@ func (c *Client) Market() *market.Client {
 		return nil
 	}
 	return c.market
+}
+
+// Markets returns the composed Markets v1 API client.
+//
+// Version:
+//   - 2026-08-26: Added.
+func (c *Client) Markets() *markets.Client {
+	if c == nil {
+		return nil
+	}
+	return c.markets
 }
 
 // Candles requests candle data.
@@ -176,6 +196,28 @@ func (c *Client) FundingHistory(ctx context.Context, params funding_history.Para
 		return nil, fmt.Errorf("failed to request funding history: funding_history_client=null")
 	}
 	return c.market.FundingHistory().Send(ctx, params)
+}
+
+// Ticker24Hr requests Markets v1 tickers, including current funding data.
+//
+// Version:
+//   - 2026-08-26: Added.
+func (c *Client) Ticker24Hr(ctx context.Context, params ticker24hr.Params) ([]ticker24hr.Ticker, error) {
+	if c == nil || c.markets == nil || c.markets.Ticker24Hr() == nil {
+		return nil, fmt.Errorf("failed to request markets 24-hour tickers: client=null")
+	}
+	return c.markets.Ticker24Hr().Send(ctx, params)
+}
+
+// TickerIndices requests Markets v1 index and mark prices.
+//
+// Version:
+//   - 2026-08-26: Added.
+func (c *Client) TickerIndices(ctx context.Context, params tickerindices.Params) ([]tickerindices.Ticker, error) {
+	if c == nil || c.markets == nil || c.markets.TickerIndices() == nil {
+		return nil, fmt.Errorf("failed to request markets index tickers: client=null")
+	}
+	return c.markets.TickerIndices().Send(ctx, params)
 }
 
 // Do executes a REST request.

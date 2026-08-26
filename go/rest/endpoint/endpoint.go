@@ -10,4 +10,6 @@ const (
 	SpotMarketSummaryPath     = "/api/v3.2/market_summary"
 	SpotOHLCVPath             = "/api/v3.2/ohlcv"
 	MarketsPath               = "/markets"
+	MarketsTicker24HrPath     = "/ticker/24hr"
+	MarketsTickerIndicesPath  = "/ticker/indices"
 )

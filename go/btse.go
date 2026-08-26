@@ -6,7 +6,10 @@ import (
 
 	"github.com/k4k3ru-hub/btse/go/rest"
 	"github.com/k4k3ru-hub/btse/go/rest/market/candles"
+	fundinghistory "github.com/k4k3ru-hub/btse/go/rest/market/funding_history"
 	"github.com/k4k3ru-hub/btse/go/rest/market/market_summary"
+	ticker24hr "github.com/k4k3ru-hub/btse/go/rest/markets/ticker_24hr"
+	tickerindices "github.com/k4k3ru-hub/btse/go/rest/markets/ticker_indices"
 	btseWebsocket "github.com/k4k3ru-hub/btse/go/websocket"
 	"github.com/k4k3ru-hub/btse/go/websocket/protocol"
 	"github.com/k4k3ru-hub/btse/go/websocket/subscriptions"
@@ -27,6 +30,12 @@ type CandleParams = candles.Params
 type CandleResolution = candles.Resolution
 type MarketSummary = market_summary.MarketSummary
 type MarketSummaryParams = market_summary.Params
+type FundingHistoryRate = fundinghistory.FundingRate
+type FundingHistoryParams = fundinghistory.Params
+type Ticker24Hr = ticker24hr.Ticker
+type Ticker24HrParams = ticker24hr.Params
+type TickerIndices = tickerindices.Ticker
+type TickerIndicesParams = tickerindices.Params
 
 const (
 	CandleResolution1Minute  = candles.Resolution1Minute

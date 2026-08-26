@@ -11,6 +11,8 @@ import (
 	"github.com/k4k3ru-hub/btse/go/rest/market/candles"
 	"github.com/k4k3ru-hub/btse/go/rest/market/funding_history"
 	"github.com/k4k3ru-hub/btse/go/rest/market/market_summary"
+	ticker24hr "github.com/k4k3ru-hub/btse/go/rest/markets/ticker_24hr"
+	tickerindices "github.com/k4k3ru-hub/btse/go/rest/markets/ticker_indices"
 )
 
 type recordingHTTPClient struct {
@@ -26,6 +28,8 @@ func (c *recordingHTTPClient) Do(request *http.Request) (*http.Response, error) 
 	body := `[[1624987380,1,2,0.5,1.5,10]]`
 	if request.URL.Path == "/public-api/market/v1/markets" {
 		body = `{"success":true,"code":1,"msg":"Success","data":{"symbols":[]}}`
+	} else if request.URL.Path == "/public-api/market/v1/ticker/24hr" || request.URL.Path == "/public-api/market/v1/ticker/indices" {
+		body = `{"success":true,"code":1,"msg":"Success","data":[]}`
 	} else if strings.HasSuffix(request.URL.Path, endpoint.FuturesFundingHistoryPath) {
 		body = `{"BTC-PERP":[]}`
 	}
@@ -33,6 +37,30 @@ func (c *recordingHTTPClient) Do(request *http.Request) (*http.Response, error) 
 		StatusCode: http.StatusOK,
 		Body:       io.NopCloser(strings.NewReader(body)),
 	}, nil
+}
+
+// TestProductClientsUseMarketsV1Tickers verifies Markets v1 ticker routing.
+//
+// Version:
+//   - 2026-08-26: Added.
+func TestProductClientsUseMarketsV1Tickers(t *testing.T) {
+	httpClient := &recordingHTTPClient{}
+	client, err := NewFuturesClient(&ClientOption{HTTPClient: httpClient})
+	if err != nil {
+		t.Fatalf("NewFuturesClient() error = %v", err)
+	}
+	if _, err := client.Ticker24Hr(context.Background(), ticker24hr.Params{Symbol: "BTC-PERP-USDT", Full: true}); err != nil {
+		t.Fatalf("Ticker24Hr() error = %v", err)
+	}
+	if got := httpClient.request.URL.String(); got != "https://api.btse.com/public-api/market/v1/ticker/24hr?isFull=true&symbol=BTC-PERP-USDT" {
+		t.Errorf("request URL = %q", got)
+	}
+	if _, err := client.TickerIndices(context.Background(), tickerindices.Params{Symbol: "BTC-PERP-USDT"}); err != nil {
+		t.Fatalf("TickerIndices() error = %v", err)
+	}
+	if got := httpClient.request.URL.String(); got != "https://api.btse.com/public-api/market/v1/ticker/indices?symbol=BTC-PERP-USDT" {
+		t.Errorf("request URL = %q", got)
+	}
 }
 
 // TestFuturesClientUsesFundingHistoryEndpoint verifies Futures funding-history composition.

@@ -43,6 +43,9 @@ func TestNewRESTClientComposesMarketOperations(t *testing.T) {
 		if test.hasFundingHistory && client.Market().FundingHistory() == nil {
 			t.Fatal("Futures REST constructor did not compose funding history")
 		}
+		if client.Markets() == nil || client.Markets().Ticker24Hr() == nil || client.Markets().TickerIndices() == nil {
+			t.Fatal("REST constructor did not compose Markets v1 clients")
+		}
 	}
 }
 
