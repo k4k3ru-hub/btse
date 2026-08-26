@@ -66,6 +66,12 @@ type MarketSummary struct {
 	FundingTime            int64    `json:"fundingTime"`
 }
 
+// Response contains market summaries and the BTSE response time.
+type Response struct {
+	ResponseTime    int64
+	MarketSummaries []MarketSummary
+}
+
 // WebSocketSymbol resolves the venue symbol used by BTSE WebSocket feeds.
 //
 // Returns:
@@ -132,10 +138,26 @@ func NewClientWithEndpoint(executor transport.Executor, baseURL, path string) (*
 // Send requests market summaries.
 //
 // Version:
+//   - 2026-08-26: Preserved compatibility through SendWithResponse.
 //   - 2026-08-16: Added.
 func (c *Client) Send(ctx context.Context, params Params) ([]MarketSummary, error) {
+	response, err := c.SendWithResponse(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	return response.MarketSummaries, nil
+}
+
+// SendWithResponse requests market summaries with the BTSE response time.
+//
+// Returns:
+//   - Market summaries and the response time in Unix milliseconds.
+//
+// Version:
+//   - 2026-08-26: Added.
+func (c *Client) SendWithResponse(ctx context.Context, params Params) (Response, error) {
 	if c == nil {
-		return nil, fmt.Errorf("failed to request market summary: client=null")
+		return Response{}, fmt.Errorf("failed to request market summary: client=null")
 	}
 
 	parameterCount := 0
@@ -149,7 +171,7 @@ func (c *Client) Send(ctx context.Context, params Params) ([]MarketSummary, erro
 		parameterCount++
 	}
 	if parameterCount > 1 {
-		return nil, fmt.Errorf("failed to request market summary: filters=invalid")
+		return Response{}, fmt.Errorf("failed to request market summary: filters=invalid")
 	}
 
 	query := make(url.Values)
@@ -159,14 +181,14 @@ func (c *Client) Send(ctx context.Context, params Params) ([]MarketSummary, erro
 	if len(params.Symbols) > 0 {
 		value, err := json.Marshal(params.Symbols)
 		if err != nil {
-			return nil, fmt.Errorf("failed to request market summary: failed to encode symbols: %w", err)
+			return Response{}, fmt.Errorf("failed to request market summary: failed to encode symbols: %w", err)
 		}
 		query.Set("symbols", string(value))
 	}
 	if len(params.Types) > 0 {
 		value, err := json.Marshal(params.Types)
 		if err != nil {
-			return nil, fmt.Errorf("failed to request market summary: failed to encode types: %w", err)
+			return Response{}, fmt.Errorf("failed to request market summary: failed to encode types: %w", err)
 		}
 		query.Set("types", string(value))
 	}
@@ -178,22 +200,23 @@ func (c *Client) Send(ctx context.Context, params Params) ([]MarketSummary, erro
 		Query:   query,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to request market summary: %w", err)
+		return Response{}, fmt.Errorf("failed to request market summary: %w", err)
 	}
 
 	var response struct {
 		Success bool   `json:"success"`
 		Code    int    `json:"code"`
 		Message string `json:"msg"`
+		Time    int64  `json:"time"`
 		Data    struct {
 			Symbols []MarketSummary `json:"symbols"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("failed to request market summary: failed to decode response body: %w", err)
+		return Response{}, fmt.Errorf("failed to request market summary: failed to decode response body: %w", err)
 	}
 	if !response.Success {
-		return nil, fmt.Errorf("failed to request market summary: api request unsuccessful: code=%d message=%q", response.Code, response.Message)
+		return Response{}, fmt.Errorf("failed to request market summary: api request unsuccessful: code=%d message=%q", response.Code, response.Message)
 	}
-	return response.Data.Symbols, nil
+	return Response{ResponseTime: response.Time, MarketSummaries: response.Data.Symbols}, nil
 }

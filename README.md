@@ -13,6 +13,20 @@ Go SDK for BTSE public Spot and Futures market data.
 - Current funding rate, next funding time, and open interest: Markets v1 `GET /public-api/market/v1/ticker/24hr`
 - Mark price and index price: Markets v1 `GET /public-api/market/v1/ticker/indices`
 
+BTSE Futures Open Interest is currently obtained by REST polling; the public
+WebSocket feeds do not document an Open Interest stream. The Markets v1
+24-hour ticker provides `openInterest`, which is the venue-reported number of
+open positions and is treated as contracts. The Markets v1 market summary
+separately provides `contractSize` and `baseCurrency`, so a base asset quantity
+can be derived as `openInterest * contractSize`. The unified Markets v1
+responses do not currently provide an Open Interest notional value; consumers
+that calculate one should preserve the conversion price and its timestamp.
+
+Use `MarketSummaryWithResponse` or `Ticker24HrWithResponse` when the BTSE
+response time is required as the observation timestamp. `ResponseTime` is a
+Unix timestamp in milliseconds. The existing methods without `WithResponse`
+remain available for compatibility.
+
 The WebSocket feeds use separate BTSE endpoints, so create one client for BBO
 and another for trades.
 Funding-history parameters are owned by
@@ -59,6 +73,15 @@ currentFunding, err := restClient.Ticker24Hr(ctx, btse.Ticker24HrParams{
 if err != nil {
 	return err
 }
+
+openInterest, err := restClient.MarketSummaryWithResponse(ctx, btse.MarketSummaryParams{
+	Symbol: "BTC-PERP-USDT",
+})
+if err != nil {
+	return err
+}
+_ = openInterest.ResponseTime
+_ = openInterest.MarketSummaries
 indices, err := restClient.TickerIndices(ctx, btse.TickerIndicesParams{
 	Symbol: "BTC-PERP-USDT",
 })

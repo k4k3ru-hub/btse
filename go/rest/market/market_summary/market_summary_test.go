@@ -40,6 +40,7 @@ func (e *recordingExecutor) Do(_ context.Context, request transport.Request) ([]
 		"success":true,
 		"code":1,
 		"msg":"Success",
+		"time":1760325052630,
 		"data":{"symbols":[{
 		"symbol":"BTC-PERP",
 		"type":"FuturesPerpetual",
@@ -79,6 +80,30 @@ func TestClientSendBuildsQueryAndDecodesSummary(t *testing.T) {
 	}
 	if len(result) != 1 || result[0].Symbol != "BTC-PERP" || result[0].Type != "FuturesPerpetual" || result[0].MinPriceIncrement != 0.1 || result[0].ContractSize != 0.001 {
 		t.Errorf("result = %+v", result)
+	}
+}
+
+// TestClientSendWithResponseDecodesContractMetadata verifies contract fields and response time.
+//
+// Version:
+//   - 2026-08-26: Added.
+func TestClientSendWithResponseDecodesContractMetadata(t *testing.T) {
+	executor := &recordingExecutor{}
+	client, err := NewClient(executor)
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	response, err := client.SendWithResponse(context.Background(), Params{Symbol: "BTC-PERP"})
+	if err != nil {
+		t.Fatalf("SendWithResponse() error = %v", err)
+	}
+	if response.ResponseTime != 1760325052630 || len(response.MarketSummaries) != 1 {
+		t.Fatalf("response = %#v", response)
+	}
+	summary := response.MarketSummaries[0]
+	if summary.ContractSize != 0.001 || summary.Base != "BTC" || summary.Quote != "USDT" {
+		t.Fatalf("summary = %#v", summary)
 	}
 }
 

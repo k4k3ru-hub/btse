@@ -27,9 +27,11 @@ func (c *recordingHTTPClient) Do(request *http.Request) (*http.Response, error) 
 	c.request = request
 	body := `[[1624987380,1,2,0.5,1.5,10]]`
 	if request.URL.Path == "/public-api/market/v1/markets" {
-		body = `{"success":true,"code":1,"msg":"Success","data":{"symbols":[]}}`
+		body = `{"success":true,"code":1,"msg":"Success","time":1760325052630,"data":{"symbols":[]}}`
+	} else if request.URL.Path == "/public-api/market/v1/ticker/24hr" && request.URL.Query().Get("symbol") != "" {
+		body = `{"success":true,"code":1,"msg":"Success","time":1760325052630,"data":{}}`
 	} else if request.URL.Path == "/public-api/market/v1/ticker/24hr" || request.URL.Path == "/public-api/market/v1/ticker/indices" {
-		body = `{"success":true,"code":1,"msg":"Success","data":[]}`
+		body = `{"success":true,"code":1,"msg":"Success","time":1760325052630,"data":[]}`
 	} else if strings.HasSuffix(request.URL.Path, endpoint.FuturesFundingHistoryPath) {
 		body = `{"BTC-PERP":[]}`
 	}
@@ -37,6 +39,31 @@ func (c *recordingHTTPClient) Do(request *http.Request) (*http.Response, error) 
 		StatusCode: http.StatusOK,
 		Body:       io.NopCloser(strings.NewReader(body)),
 	}, nil
+}
+
+// TestProductClientsExposeMarketsResponseTime verifies top-level timestamp-preserving methods.
+//
+// Version:
+//   - 2026-08-26: Added.
+func TestProductClientsExposeMarketsResponseTime(t *testing.T) {
+	client, err := NewFuturesClient(&ClientOption{HTTPClient: &recordingHTTPClient{}})
+	if err != nil {
+		t.Fatalf("NewFuturesClient() error = %v", err)
+	}
+	marketResponse, err := client.MarketSummaryWithResponse(context.Background(), market_summary.Params{Symbol: "BTC-PERP-USDT"})
+	if err != nil {
+		t.Fatalf("MarketSummaryWithResponse() error = %v", err)
+	}
+	if marketResponse.ResponseTime != 1760325052630 {
+		t.Fatalf("market response = %#v", marketResponse)
+	}
+	tickerResponse, err := client.Ticker24HrWithResponse(context.Background(), ticker24hr.Params{Symbol: "BTC-PERP-USDT", Full: true})
+	if err != nil {
+		t.Fatalf("Ticker24HrWithResponse() error = %v", err)
+	}
+	if tickerResponse.ResponseTime != 1760325052630 {
+		t.Fatalf("ticker response = %#v", tickerResponse)
+	}
 }
 
 // TestProductClientsUseMarketsV1Tickers verifies Markets v1 ticker routing.

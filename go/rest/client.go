@@ -187,6 +187,20 @@ func (c *Client) MarketSummary(ctx context.Context, params market_summary.Params
 	return c.market.MarketSummary().Send(ctx, params)
 }
 
+// MarketSummaryWithResponse requests market metadata with the BTSE response time.
+//
+// Returns:
+//   - Market summaries and the response time in Unix milliseconds.
+//
+// Version:
+//   - 2026-08-26: Added.
+func (c *Client) MarketSummaryWithResponse(ctx context.Context, params market_summary.Params) (market_summary.Response, error) {
+	if c == nil || c.market == nil || c.market.MarketSummary() == nil {
+		return market_summary.Response{}, fmt.Errorf("failed to request market summary: client=null")
+	}
+	return c.market.MarketSummary().SendWithResponse(ctx, params)
+}
+
 // FundingHistory requests settled funding rates.
 //
 // Version:
@@ -207,6 +221,20 @@ func (c *Client) Ticker24Hr(ctx context.Context, params ticker24hr.Params) ([]ti
 		return nil, fmt.Errorf("failed to request markets 24-hour tickers: client=null")
 	}
 	return c.markets.Ticker24Hr().Send(ctx, params)
+}
+
+// Ticker24HrWithResponse requests Markets v1 tickers with the BTSE response time.
+//
+// Returns:
+//   - Tickers and the response time in Unix milliseconds.
+//
+// Version:
+//   - 2026-08-26: Added.
+func (c *Client) Ticker24HrWithResponse(ctx context.Context, params ticker24hr.Params) (ticker24hr.Response, error) {
+	if c == nil || c.markets == nil || c.markets.Ticker24Hr() == nil {
+		return ticker24hr.Response{}, fmt.Errorf("failed to request markets 24-hour tickers: client=null")
+	}
+	return c.markets.Ticker24Hr().SendWithResponse(ctx, params)
 }
 
 // TickerIndices requests Markets v1 index and mark prices.
