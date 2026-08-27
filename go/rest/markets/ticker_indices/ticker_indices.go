@@ -37,6 +37,7 @@ func NewClient(executor transport.Executor) (*Client, error) {
 // Send requests Markets index and mark prices.
 //
 // Version:
+//   - 2026-08-27: Decoded symbol-filtered object responses.
 //   - 2026-08-26: Added.
 func (c *Client) Send(ctx context.Context, params Params) ([]Ticker, error) {
 	if c == nil || c.executor == nil {
@@ -49,6 +50,16 @@ func (c *Client) Send(ctx context.Context, params Params) ([]Ticker, error) {
 	body, err := c.executor.Do(ctx, transport.Request{BaseURL: endpoint.DefaultMarketsBaseURL, Method: http.MethodGet, Path: endpoint.MarketsTickerIndicesPath, Query: query})
 	if err != nil {
 		return nil, fmt.Errorf("failed to request markets index tickers: %w", err)
+	}
+	if params.Symbol != "" {
+		var envelope marketsprotocol.Envelope[Ticker]
+		if err := json.Unmarshal(body, &envelope); err != nil {
+			return nil, fmt.Errorf("failed to request markets index ticker: failed to decode response body: %w", err)
+		}
+		if err := envelope.Validate(); err != nil {
+			return nil, fmt.Errorf("failed to request markets index ticker: %w", err)
+		}
+		return []Ticker{envelope.Data}, nil
 	}
 	var envelope marketsprotocol.Envelope[[]Ticker]
 	if err := json.Unmarshal(body, &envelope); err != nil {

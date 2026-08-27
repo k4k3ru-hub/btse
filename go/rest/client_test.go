@@ -22,6 +22,7 @@ type recordingHTTPClient struct {
 // Do records a REST request and returns a candle response.
 //
 // Version:
+//   - 2026-08-27: Returned object data for symbol-filtered index tickers.
 //   - 2026-08-16: Added.
 func (c *recordingHTTPClient) Do(request *http.Request) (*http.Response, error) {
 	c.request = request
@@ -29,6 +30,8 @@ func (c *recordingHTTPClient) Do(request *http.Request) (*http.Response, error) 
 	if request.URL.Path == "/public-api/market/v1/markets" {
 		body = `{"success":true,"code":1,"msg":"Success","time":1760325052630,"data":{"symbols":[]}}`
 	} else if request.URL.Path == "/public-api/market/v1/ticker/24hr" && request.URL.Query().Get("symbol") != "" {
+		body = `{"success":true,"code":1,"msg":"Success","time":1760325052630,"data":{}}`
+	} else if request.URL.Path == "/public-api/market/v1/ticker/indices" && request.URL.Query().Get("symbol") != "" {
 		body = `{"success":true,"code":1,"msg":"Success","time":1760325052630,"data":{}}`
 	} else if request.URL.Path == "/public-api/market/v1/ticker/24hr" || request.URL.Path == "/public-api/market/v1/ticker/indices" {
 		body = `{"success":true,"code":1,"msg":"Success","time":1760325052630,"data":[]}`

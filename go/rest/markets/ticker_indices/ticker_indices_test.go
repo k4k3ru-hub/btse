@@ -12,7 +12,29 @@ type recordingExecutor struct{ request transport.Request }
 
 func (e *recordingExecutor) Do(_ context.Context, request transport.Request) ([]byte, error) {
 	e.request = request
+	if request.Query.Get("symbol") != "" {
+		return []byte(`{"success":true,"code":1,"msg":"Success","time":1760325052630,"data":{"symbol":"BTC-PERP-USDT","indexPrice":"117995.0","markPrice":"118001.0"}}`), nil
+	}
 	return []byte(`{"success":true,"code":1,"msg":"Success","time":1760325052630,"data":[{"symbol":"BTC-PERP-USDT","indexPrice":"117995.0","markPrice":"118001.0"}]}`), nil
+}
+
+// TestSendDecodesAllMarkAndIndexPrices verifies array decoding without a symbol filter.
+//
+// Version:
+//   - 2026-08-27: Added.
+func TestSendDecodesAllMarkAndIndexPrices(t *testing.T) {
+	executor := &recordingExecutor{}
+	client, err := NewClient(executor)
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+	result, err := client.Send(context.Background(), Params{})
+	if err != nil {
+		t.Fatalf("Send() error = %v", err)
+	}
+	if len(result) != 1 || result[0].Symbol != "BTC-PERP-USDT" {
+		t.Fatalf("result = %#v", result)
+	}
 }
 
 // TestSendDecodesMarkAndIndexPrices verifies complete index-ticker decoding.
