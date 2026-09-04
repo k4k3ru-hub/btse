@@ -26,9 +26,10 @@ type SessionContext = k4k3ruWebsocket.SessionContext
 
 // Client manages a BTSE WebSocket connection and its subscriptions.
 type Client struct {
-	wsClient *k4k3ruWebsocket.Client
-	bbo      *subscriptions.BBOClient
-	trades   *subscriptions.TradesClient
+	wsClient  *k4k3ruWebsocket.Client
+	bbo       *subscriptions.BBOClient
+	orderBook *subscriptions.OrderBookClient
+	trades    *subscriptions.TradesClient
 }
 
 // DefaultClientOption returns the shared WebSocket transport defaults.
@@ -54,6 +55,10 @@ func NewClient(ctx context.Context, endpointURL string, handler SessionHandler, 
 	}
 	client := &Client{wsClient: wsClient}
 	client.bbo, err = subscriptions.NewBBOClient(client)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create websocket client: %w", err)
+	}
+	client.orderBook, err = subscriptions.NewOrderBookClient(client)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create websocket client: %w", err)
 	}
@@ -120,6 +125,17 @@ func (c *Client) BBO() *subscriptions.BBOClient {
 		return nil
 	}
 	return c.bbo
+}
+
+// OrderBook returns the level-two order book subscription client.
+//
+// Version:
+//   - 2026-09-04: Added.
+func (c *Client) OrderBook() *subscriptions.OrderBookClient {
+	if c == nil {
+		return nil
+	}
+	return c.orderBook
 }
 
 // Trades returns the public trade subscription client.

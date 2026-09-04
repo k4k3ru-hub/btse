@@ -9,6 +9,7 @@ const (
 	OperationSubscribe   = "subscribe"
 	OperationUnsubscribe = "unsubscribe"
 	TopicBBO             = "snapshotL1"
+	TopicOrderBook       = "update"
 	TopicSpotTrades      = "tradeHistoryApi"
 	TopicFuturesTrades   = "tradeHistoryApiV3"
 	TopicTrades          = TopicFuturesTrades
@@ -54,6 +55,23 @@ type BBOData struct {
 	Type      string      `json:"type"`
 	Symbol    string      `json:"symbol"`
 	Timestamp int64       `json:"timestamp"`
+}
+
+// OrderBook is a level-two order book snapshot or delta message.
+type OrderBook struct {
+	Topic string        `json:"topic"`
+	Data  OrderBookData `json:"data"`
+}
+
+// OrderBookData contains absolute price-level sizes for an order book update.
+type OrderBookData struct {
+	Bids       [][2]string `json:"bids"`
+	Asks       [][2]string `json:"asks"`
+	Type       string      `json:"type"`
+	Symbol     string      `json:"symbol"`
+	Timestamp  int64       `json:"timestamp"`
+	SeqNum     int64       `json:"seqNum"`
+	PrevSeqNum int64       `json:"prevSeqNum"`
 }
 
 // Trades is a public trade message.

@@ -61,6 +61,35 @@ func TestBBOClientBuildsBTSEPayload(t *testing.T) {
 	}
 }
 
+// TestOrderBookClientBuildsBTSEPayload verifies order book subscription payloads.
+//
+// Version:
+//   - 2026-09-04: Added.
+func TestOrderBookClientBuildsBTSEPayload(t *testing.T) {
+	e := &recordingExecutor{subscriptions: map[string]protocol.SubscribeRequest{}, unsubscribes: map[string]protocol.SubscribeRequest{}}
+	c, err := NewOrderBookClient(e)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := OrderBookParams{Symbol: "BTC-PERP"}
+	if err := c.Subscribe(context.Background(), p); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Unsubscribe(context.Background(), p); err != nil {
+		t.Fatal(err)
+	}
+	const key = "update:BTC-PERP_0"
+	if r := e.subscriptions[key]; r.Operation != "subscribe" || len(r.Arguments) != 1 || r.Arguments[0] != key {
+		t.Errorf("subscribe = %+v", r)
+	}
+	if r := e.unsubscribes[key]; r.Operation != "unsubscribe" || len(r.Arguments) != 1 || r.Arguments[0] != key {
+		t.Errorf("unsubscribe = %+v", r)
+	}
+	if _, err := (OrderBookParams{}).Key(); err == nil {
+		t.Fatal("Key() error = nil, want empty symbol error")
+	}
+}
+
 // TestTradesClientBuildsBTSEPayload verifies trade subscription payloads.
 //
 // Version:

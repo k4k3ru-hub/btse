@@ -71,7 +71,7 @@ func TestNewWebSocketClientComposesSubscriptions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewWebSocketClient() error = %v", err)
 	}
-	if client.BBO() == nil || client.Trades() == nil {
+	if client.BBO() == nil || client.OrderBook() == nil || client.Trades() == nil {
 		t.Fatal("NewWebSocketClient() did not compose subscription clients")
 	}
 }

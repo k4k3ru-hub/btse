@@ -5,6 +5,7 @@ Go SDK for BTSE public Spot and Futures market data.
 ## Supported data
 
 - BBO: `snapshotL1:<symbol>` on the Spot or Futures OSS WebSocket endpoint
+- Order book depth: `update:<symbol>_0` snapshots and deltas on the Spot or Futures WebSocket endpoint
 - Spot Trades: `tradeHistoryApi:<symbol>` on the Spot WebSocket endpoint
 - Futures Trades: `tradeHistoryApiV3:<symbol>` on the Futures WebSocket endpoint
 - Candles: Spot `GET /api/v3.2/ohlcv`; Futures `GET /api/v2.3/ohlcv`
@@ -104,7 +105,15 @@ if err := bboClient.Connect(ctx); err != nil {
 if err := bboClient.BBO().Subscribe(ctx, btse.BBOParams{Symbol: "BTC-PERP"}); err != nil {
 	return err
 }
+
+if err := bboClient.OrderBook().Subscribe(ctx, subscriptions.OrderBookParams{Symbol: "BTC-PERP"}); err != nil {
+	return err
+}
 ```
+
+Order book subscriptions emit an initial snapshot followed by deltas containing
+absolute price-level sizes. Consumers should validate `seqNum` and `prevSeqNum`;
+after a sequence gap, unsubscribe and subscribe again to obtain a new snapshot.
 
 Set `TradesParams.Market` so the SDK selects the protocol topic. The zero value
 retains the historical Futures `tradeHistoryApiV3` behavior for compatibility.
